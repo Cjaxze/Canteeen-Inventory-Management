@@ -1,0 +1,98 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Categories{% endblock %}
+{% block nav_categories %}active{% endblock %}
+{% block topbar_title %}Categories{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="page-title">Categories</p>
+        <p class="page-subtitle">{{ categories.count }} categor{{ categories.count|pluralize:"y,ies" }}</p>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1.5fr;gap:16px;align-items:start;">
+    <!-- Add / Edit form -->
+    <div class="card" id="cat-form-card">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+            <span class="card-header-title" id="form-title">Add Category</span>
+            <button type="button" id="cancel-edit-btn" onclick="cancelEdit()"
+                style="display:none;background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:2px 8px;border-radius:6px;"
+                onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                <i class="bi bi-x"></i> Cancel
+            </button>
+        </div>
+        <form method="post" id="cat-form" class="form-body" action="/owner/categories/">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" name="name" id="cat-name" required placeholder="e.g. Beverages">
+            </div>
+            <div class="form-group">
+                <label>Description <span style="font-weight:300;text-transform:none;">(optional)</span></label>
+                <textarea name="description" id="cat-desc" placeholder="What's in this category…" style="min-height:60px;"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm" id="form-submit-btn">
+                <i class="bi bi-plus"></i> Add Category
+            </button>
+        </form>
+    </div>
+
+    <!-- List -->
+    <div class="card" style="overflow:hidden;">
+        <div class="card-header"><span class="card-header-title">All Categories</span></div>
+        {% if categories %}
+        <table>
+            <thead><tr><th>Name</th><th>Description</th><th></th></tr></thead>
+            <tbody>
+                {% for cat in categories %}
+                <tr>
+                    <td style="font-weight:500;">{{ cat.name }}</td>
+                    <td style="color:var(--muted);font-size:12.5px;">{{ cat.description|default:"—"|truncatechars:40 }}</td>
+                    <td style="display:flex;gap:6px;align-items:center;">
+                        <button type="button"
+                            class="btn btn-ghost btn-sm"
+                            onclick="startEdit({{ cat.pk }}, '{{ cat.name|escapejs }}', '{{ cat.description|escapejs }}')"
+                            title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <form method="post" action="/owner/categories/delete/{{ cat.pk }}/"
+                              onsubmit="return confirm('Delete category {{ cat.name }}?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-tags"></i>No categories yet</div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function startEdit(pk, name, description) {
+    document.getElementById('cat-name').value = name;
+    document.getElementById('cat-desc').value = description;
+    document.getElementById('form-title').textContent = 'Edit Category';
+    document.getElementById('form-submit-btn').innerHTML = '<i class="bi bi-check"></i> Save Changes';
+    document.getElementById('cancel-edit-btn').style.display = 'inline-flex';
+    document.getElementById('cat-form').action = '/owner/categories/edit/' + pk + '/';
+    document.getElementById('cat-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('cat-name').focus();
+}
+
+function cancelEdit() {
+    document.getElementById('cat-name').value = '';
+    document.getElementById('cat-desc').value = '';
+    document.getElementById('form-title').textContent = 'Add Category';
+    document.getElementById('form-submit-btn').innerHTML = '<i class="bi bi-plus"></i> Add Category';
+    document.getElementById('cancel-edit-btn').style.display = 'none';
+    document.getElementById('cat-form').action = '/owner/categories/';
+}
+</script>
+{% endblock %}

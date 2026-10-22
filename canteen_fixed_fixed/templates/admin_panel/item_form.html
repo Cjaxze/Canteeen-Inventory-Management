@@ -1,0 +1,65 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}{{ action }} Item{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+{% block topbar_title %}{{ action }} Item{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="page-title">{{ action }} Item</p>
+        <p class="page-subtitle">{% if action == 'Edit' %}Editing: {{ item.name }}{% else %}Add a new item to inventory{% endif %}</p>
+    </div>
+    <a href="/owner/inventory/" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="card form-card">
+    {% if action == 'Edit' %}
+    <form method="post" action="/owner/inventory/edit/{{ item.pk }}/" class="form-body">
+    {% else %}
+    <form method="post" action="/owner/inventory/add/" class="form-body">
+    {% endif %}
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Item Name</label>
+            <input type="text" name="name" value="{{ item.name|default:'' }}" required placeholder="e.g. Coke 1.5L">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category">
+                    <option value="">No Category</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if item.category.id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Unit</label>
+                <input type="text" name="unit" value="{{ item.unit|default:'pcs' }}" placeholder="pcs / kg / L">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Quantity</label>
+                <input type="number" name="quantity" value="{{ item.quantity|default:0 }}" min="0" required>
+            </div>
+            <div class="form-group">
+                <label>Price (₱)</label>
+                <input type="number" name="price" value="{{ item.price|default:'0.00' }}" step="0.01" min="0" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Low Stock Threshold</label>
+            <input type="number" name="low_stock_threshold" value="{{ item.low_stock_threshold|default:10 }}" min="0">
+        </div>
+        <div class="form-group">
+            <label>Description <span style="font-weight:300;text-transform:none;">(optional)</span></label>
+            <textarea name="description" placeholder="Item notes…">{{ item.description|default:'' }}</textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> {{ action }} Item</button>
+            <a href="/owner/inventory/" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

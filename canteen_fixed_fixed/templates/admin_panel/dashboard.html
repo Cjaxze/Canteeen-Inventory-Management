@@ -1,0 +1,470 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block content %}
+<style>
+.stat-card-link {
+    display: block; text-decoration: none; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 20px; transition: border-color .2s, transform .15s, box-shadow .2s;
+    cursor: pointer;
+}
+.stat-card-link:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,.25); }
+.stat-card-link.hover-ok:hover     { border-color: var(--ok); }
+.stat-card-link.hover-accent:hover { border-color: var(--accent); }
+.stat-card-link.hover-warn:hover   { border-color: var(--warn); }
+.stat-card-link.hover-danger:hover { border-color: var(--danger); }
+
+/* ── Modals ── */
+.modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+    z-index: 300; align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; width: 100%; max-width: 480px;
+    margin: 16px; box-shadow: 0 24px 64px rgba(0,0,0,.5);
+    animation: popIn .18s ease;
+}
+@keyframes popIn { from { opacity:0; transform:translateY(12px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+.modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.modal-title { font-size: 15px; font-weight: 500; color: var(--text); }
+.modal-close { background:none; border:none; cursor:pointer; color:var(--muted); font-size:18px; padding:2px 6px; border-radius:6px; transition:color .15s; }
+.modal-close:hover { color:var(--text); }
+.modal-body  { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+.modal .form-group label { font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px; display:block; }
+.modal .form-group input,
+.modal .form-group select,
+.modal .form-group textarea {
+    background:var(--bg); border:1.5px solid var(--border);
+    border-radius:8px; padding:9px 12px;
+    font-family:inherit; font-size:14px; color:var(--text);
+    outline:none; transition:border-color .15s; width:100%;
+    box-sizing:border-box;
+}
+.modal .form-group input:focus,
+.modal .form-group select:focus,
+.modal .form-group textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-l); }
+.modal textarea { resize:vertical; min-height:60px; }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+/* ── Radio pills inside modal ── */
+.pills { display:flex; gap:8px; }
+.pill-opt { display:flex; align-items:center; }
+.pill-opt input[type=radio] { display:none; }
+.pill-opt label {
+    cursor:pointer; padding:7px 18px; border-radius:8px;
+    border:1.5px solid var(--border); color:var(--muted);
+    font-size:13.5px; font-weight:500; transition:all .15s;
+}
+.pill-opt input[type=radio]:checked + label { border-color:var(--accent); color:var(--accent); background:var(--accent-l); }
+
+/* ── Info banner inside modal ── */
+.info-banner { background:var(--surface2); border-radius:8px; padding:11px 14px; font-size:13px; display:flex; align-items:center; gap:10px; }
+.info-banner .label { color:var(--muted); font-size:11.5px; }
+.info-banner .val   { font-weight:600; }
+</style>
+
+<!-- Page header -->
+<div class="page-header">
+    <div>
+        <p class="page-title">Dashboard</p>
+        <p class="page-subtitle">Welcome back, {{ request.user.username }} — full system overview</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('modal-add')">
+        <i class="bi bi-plus"></i> Add Item
+    </button>
+</div>
+
+<!-- ── STAT CARDS (all clickable) ── -->
+<div class="stats-grid">
+    <a href="/owner/inventory/" class="stat-card-link hover-ok">
+        <div class="stat-label">Total Items &nbsp;<i class="bi bi-arrow-right" style="font-size:10px;opacity:.5;"></i></div>
+        <div class="stat-value">{{ total_items }}</div>
+    </a>
+    <a href="/owner/inventory/" class="stat-card-link hover-accent">
+        <div class="stat-label">Inventory Value</div>
+        <div class="stat-value accent" style="font-size:22px;margin-top:4px;">₱{{ total_value|floatformat:2 }}</div>
+    </a>
+    <a href="/owner/inventory/?status=low" class="stat-card-link hover-warn">
+        <div class="stat-label">Low Stock &nbsp;<i class="bi bi-arrow-right" style="font-size:10px;opacity:.5;"></i></div>
+        <div class="stat-value warn">{{ low_stock_count }}</div>
+    </a>
+    <a href="/owner/inventory/?status=out" class="stat-card-link hover-danger">
+        <div class="stat-label">Out of Stock &nbsp;<i class="bi bi-arrow-right" style="font-size:10px;opacity:.5;"></i></div>
+        <div class="stat-value danger">{{ out_of_stock_count }}</div>
+    </a>
+</div>
+
+<!-- ── MINI STATS ── -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <a href="/owner/users/" class="stat-card-link hover-ok" style="display:flex;align-items:center;gap:14px;padding:16px 20px;">
+        <div style="width:40px;height:40px;background:var(--ok-l);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--ok);flex-shrink:0;">
+            <i class="bi bi-people"></i>
+        </div>
+        <div>
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Staff Accounts</div>
+            <div style="font-size:20px;font-weight:300;font-family:'DM Mono',monospace;">{{ employee_count }} <span style="font-size:12px;color:var(--muted);">employees</span> &nbsp;·&nbsp; {{ admin_count }} <span style="font-size:12px;color:var(--muted);">owners</span></div>
+        </div>
+    </a>
+    <a href="/owner/transactions/" class="stat-card-link hover-accent" style="display:flex;align-items:center;gap:14px;padding:16px 20px;">
+        <div style="width:40px;height:40px;background:var(--accent-l);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--accent);flex-shrink:0;">
+            <i class="bi bi-lightning-charge"></i>
+        </div>
+        <div>
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Today's Transactions &nbsp;<i class="bi bi-arrow-right" style="font-size:10px;opacity:.5;"></i></div>
+            <div style="font-size:20px;font-weight:300;font-family:'DM Mono',monospace;">{{ today_txns }}</div>
+        </div>
+    </a>
+</div>
+
+<!-- ── BOTTOM PANELS ── -->
+<div style="display:grid;grid-template-columns:1fr 1.4fr;gap:16px;">
+
+    <!-- Low Stock — Restock + Edit buttons -->
+    <div class="card" style="overflow:hidden;">
+        <div class="card-header">
+            <span class="card-header-title"><i class="bi bi-exclamation-triangle" style="color:var(--warn);"></i> Low Stock Alerts</span>
+            <a href="/owner/inventory/?status=low" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        {% if low_stock_items %}
+            {% for item in low_stock_items %}
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--border);">
+                <div>
+                    <div style="font-size:13.5px;font-weight:500;">{{ item.name }}</div>
+                    <div style="font-size:11.5px;color:var(--muted);">{{ item.category.name|default:"Uncategorized" }}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:5px;">
+                    <span class="badge badge-warn">{{ item.quantity }} {{ item.unit }}</span>
+                    <button class="btn btn-ghost btn-sm"
+                        onclick="openRestock({{ item.pk }}, '{{ item.name|escapejs }}', {{ item.quantity }}, '{{ item.unit|escapejs }}')">
+                        <i class="bi bi-plus-circle"></i> Restock
+                    </button>
+                    <button class="btn btn-ghost btn-sm"
+                        onclick="openEdit({{ item.pk }}, '{{ item.name|escapejs }}', {{ item.quantity }}, '{{ item.unit|escapejs }}', '{{ item.price }}', {{ item.low_stock_threshold }}, {{ item.category.id|default:'null' }}, '{{ item.description|escapejs }}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state"><i class="bi bi-check-circle"></i>All items well-stocked</div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Transactions — with quick Log button -->
+    <div class="card" style="overflow:hidden;">
+        <div class="card-header">
+            <span class="card-header-title"><i class="bi bi-clock-history"></i> Recent Transactions</span>
+            <div style="display:flex;gap:6px;">
+                <button class="btn btn-ghost btn-sm" onclick="openModal('modal-txn')">
+                    <i class="bi bi-plus"></i> Log
+                </button>
+                <a href="/owner/transactions/" class="btn btn-ghost btn-sm">Full Log</a>
+            </div>
+        </div>
+        {% if recent_transactions %}
+        <table>
+            <thead><tr><th>Item</th><th>Type</th><th>Qty</th><th>By</th><th>When</th><th></th></tr></thead>
+            <tbody>
+                {% for txn in recent_transactions %}
+                <tr>
+                    <td style="font-weight:500;">{{ txn.item.name }}</td>
+                    <td>
+                        {% if txn.transaction_type == 'in' %}<span class="badge badge-in">IN</span>
+                        {% else %}<span class="badge badge-out">OUT</span>{% endif %}
+                    </td>
+                    <td style="font-family:'DM Mono',monospace;font-size:13px;">{{ txn.quantity }}</td>
+                    <td style="font-size:12px;color:var(--muted);">{{ txn.recorded_by.username|default:"—" }}</td>
+                    <td style="font-size:12px;color:var(--muted);">{{ txn.timestamp|timesince }} ago</td>
+                    <td>
+                        <a href="/owner/inventory/stock/{{ txn.item.pk }}/"
+                           class="btn btn-ghost btn-sm" title="Adjust stock for {{ txn.item.name }}">
+                            <i class="bi bi-arrow-left-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-clock-history"></i>No transactions yet</div>
+        {% endif %}
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════ MODALS ═══════════════════════════ -->
+
+<!-- ① Add Item -->
+<div class="modal-overlay" id="modal-add">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title"><i class="bi bi-plus-circle" style="color:var(--accent);margin-right:8px;"></i>Add New Item</span>
+            <button class="modal-close" onclick="closeModal('modal-add')">✕</button>
+        </div>
+        <form method="post" action="/owner/inventory/add/">
+            {% csrf_token %}
+            <!-- Redirect back to dashboard after adding -->
+            <input type="hidden" name="_next" value="/owner/">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Item Name *</label>
+                    <input type="text" name="name" required placeholder="e.g. Coke 1.5L">
+                </div>
+                <div class="two-col">
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select name="category">
+                            <option value="">No Category</option>
+                            {% for cat in categories %}<option value="{{ cat.id }}">{{ cat.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Unit</label>
+                        <input type="text" name="unit" value="pcs" placeholder="pcs / kg / L">
+                    </div>
+                </div>
+                <div class="two-col">
+                    <div class="form-group">
+                        <label>Quantity *</label>
+                        <input type="number" name="quantity" value="0" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Price (₱) *</label>
+                        <input type="number" name="price" value="0.00" step="0.01" min="0" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Low Stock Threshold</label>
+                    <input type="number" name="low_stock_threshold" value="10" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Description <span style="font-weight:300;text-transform:none;">(optional)</span></label>
+                    <textarea name="description" placeholder="Item notes…"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Add Item</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ② Edit Item -->
+<div class="modal-overlay" id="modal-edit">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title"><i class="bi bi-pencil" style="color:var(--accent);margin-right:8px;"></i>Edit Item</span>
+            <button class="modal-close" onclick="closeModal('modal-edit')">✕</button>
+        </div>
+        <form method="post" id="form-edit" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Item Name *</label>
+                    <input type="text" name="name" id="edit-name" required>
+                </div>
+                <div class="two-col">
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select name="category" id="edit-cat">
+                            <option value="">No Category</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Unit</label>
+                        <input type="text" name="unit" id="edit-unit">
+                    </div>
+                </div>
+                <div class="two-col">
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="number" name="quantity" id="edit-qty" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Price (₱)</label>
+                        <input type="number" name="price" id="edit-price" step="0.01" min="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Low Stock Threshold</label>
+                    <input type="number" name="low_stock_threshold" id="edit-threshold" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Description <span style="font-weight:300;text-transform:none;">(optional)</span></label>
+                    <textarea name="description" id="edit-desc" placeholder="Item notes…"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ③ Restock -->
+<div class="modal-overlay" id="modal-restock">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" style="color:var(--ok);"><i class="bi bi-plus-circle" style="margin-right:8px;"></i>Restock Item</span>
+            <button class="modal-close" onclick="closeModal('modal-restock')">✕</button>
+        </div>
+        <form method="post" id="form-restock" action="">
+            {% csrf_token %}
+            <input type="hidden" name="type" value="in">
+            <div class="modal-body">
+                <div class="info-banner">
+                    <i class="bi bi-box-seam" style="color:var(--accent);font-size:16px;flex-shrink:0;"></i>
+                    <div>
+                        <div class="label">Item</div>
+                        <div class="val" id="restock-name"></div>
+                    </div>
+                    <div style="margin-left:auto;text-align:right;">
+                        <div class="label">Current Stock</div>
+                        <div class="val warn" id="restock-current" style="color:var(--warn);"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Quantity to Add *</label>
+                    <input type="number" name="quantity" id="restock-qty" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Note <span style="font-weight:300;text-transform:none;">(optional)</span></label>
+                    <input type="text" name="note" placeholder="e.g. Delivery from supplier">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('modal-restock')">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="background:var(--ok);border-color:var(--ok);"><i class="bi bi-check2"></i> Confirm Restock</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ④ Quick Log Transaction -->
+<div class="modal-overlay" id="modal-txn">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title"><i class="bi bi-arrow-left-right" style="color:var(--accent);margin-right:8px;"></i>Log Transaction</span>
+            <button class="modal-close" onclick="closeModal('modal-txn')">✕</button>
+        </div>
+        <form method="post" id="form-txn" action="">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Select Item *</label>
+                    <select id="txn-item" onchange="setTxnItem(this)" required>
+                        <option value="">— Choose an item —</option>
+                        {% for item in all_items %}
+                        <option value="{{ item.pk }}" data-qty="{{ item.quantity }}" data-unit="{{ item.unit }}">
+                            {{ item.name }} — {{ item.quantity }} {{ item.unit }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="txn-item-error" style="display:none;color:var(--danger);font-size:12px;margin-top:-8px;">
+                    Please select an item before submitting.
+                </div>
+                <div class="form-group">
+                    <label>Transaction Type *</label>
+                    <div class="pills">
+                        <div class="pill-opt"><input type="radio" name="type" id="txn-in"  value="in"  checked><label for="txn-in">&#x2B06; Stock In</label></div>
+                        <div class="pill-opt"><input type="radio" name="type" id="txn-out" value="out"><label for="txn-out">&#x2B07; Stock Out</label></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Quantity *</label>
+                    <input type="number" name="quantity" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Note <span style="font-weight:300;text-transform:none;">(optional)</span></label>
+                    <input type="text" name="note" placeholder="Reason or supplier info…">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('modal-txn')">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitTxnForm()"><i class="bi bi-check2"></i> Log Transaction</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ── Modal helpers ── */
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+/* ── Edit Item modal ── */
+function openEdit(pk, name, qty, unit, price, threshold, categoryId, description) {
+    document.getElementById('form-edit').action = '/owner/inventory/edit/' + pk + '/';
+    document.getElementById('edit-name').value      = name;
+    document.getElementById('edit-qty').value       = qty;
+    document.getElementById('edit-unit').value      = unit;
+    document.getElementById('edit-price').value     = price;
+    document.getElementById('edit-threshold').value = threshold;
+    document.getElementById('edit-desc').value      = description || '';
+
+    // Set the category dropdown
+    var catSelect = document.getElementById('edit-cat');
+    catSelect.value = categoryId !== null ? String(categoryId) : '';
+
+    openModal('modal-edit');
+}
+
+/* ── Restock modal ── */
+function openRestock(pk, name, currentQty, unit) {
+    document.getElementById('form-restock').action      = '/owner/inventory/stock/' + pk + '/';
+    document.getElementById('restock-name').textContent    = name;
+    document.getElementById('restock-current').textContent = currentQty + ' ' + unit;
+    document.getElementById('restock-qty').value           = 1;
+    openModal('modal-restock');
+}
+
+/* ── Quick-log transaction modal ── */
+function setTxnItem(sel) {
+    if (sel.value) {
+        document.getElementById('form-txn').action = '/owner/inventory/stock/' + sel.value + '/';
+        document.getElementById('txn-item-error').style.display = 'none';
+    } else {
+        document.getElementById('form-txn').action = '';
+    }
+}
+
+function submitTxnForm() {
+    var sel = document.getElementById('txn-item');
+    if (!sel.value) {
+        document.getElementById('txn-item-error').style.display = 'block';
+        sel.focus();
+        return;
+    }
+    document.getElementById('form-txn').submit();
+}
+
+/* ── Keyboard: Esc closes any open modal ── */
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+    }
+});
+</script>
+{% endblock %}

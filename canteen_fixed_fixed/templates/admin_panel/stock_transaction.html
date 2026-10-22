@@ -1,0 +1,59 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Stock Transaction{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+{% block topbar_title %}Stock Transaction{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="page-title">Stock Transaction</p>
+        <p class="page-subtitle">{{ item.name }}</p>
+    </div>
+    <a href="{{ request.GET.next|default:'/owner/inventory/' }}" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="card form-card">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+            <div style="font-size:16px;font-weight:500;">{{ item.name }}</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px;">
+                {{ item.category.name|default:"No category" }} &nbsp;·&nbsp;
+                Current: <strong style="font-family:'DM Mono',monospace;">{{ item.quantity }} {{ item.unit }}</strong>
+                &nbsp;·&nbsp; Price: <strong style="font-family:'DM Mono',monospace;">₱{{ item.price }}</strong>
+            </div>
+        </div>
+        {% if item.status == 'ok' %}<span class="badge badge-ok">OK</span>
+        {% elif item.status == 'low' %}<span class="badge badge-warn">Low</span>
+        {% else %}<span class="badge badge-danger">Out</span>{% endif %}
+    </div>
+    <form method="post" class="form-body">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.GET.next }}">
+        <div class="form-group">
+            <label>Transaction Type</label>
+            <div class="radio-pills">
+                <label class="radio-pill">
+                    <input type="radio" name="type" value="in" checked>
+                    <label><i class="bi bi-plus-circle"></i> Stock In</label>
+                </label>
+                <label class="radio-pill">
+                    <input type="radio" name="type" value="out">
+                    <label><i class="bi bi-dash-circle"></i> Stock Out</label>
+                </label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Quantity</label>
+            <input type="number" name="quantity" min="1" placeholder="Enter quantity" required>
+        </div>
+        <div class="form-group">
+            <label>Note <span style="font-weight:300;text-transform:none;">(optional)</span></label>
+            <textarea name="note" placeholder="e.g. Received from supplier…"></textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Record</button>
+            <a href="{{ request.GET.next|default:'/owner/inventory/' }}" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

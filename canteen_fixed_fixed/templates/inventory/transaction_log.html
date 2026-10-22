@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="page-title">Transaction Log</p>
+        <p class="page-subtitle">
+            {% if role == 'admin' %}All transactions{% else %}Your transactions{% endif %}
+            &nbsp;·&nbsp; {{ transactions.count }} record{{ transactions.count|pluralize }}
+        </p>
+    </div>
+    <a href="{% url 'employee_dashboard' %}" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+{% if role == 'employee' %}
+<div class="access-notice">
+    <i class="bi bi-info-circle"></i>
+    You are viewing only your own transactions. Admins can see all staff activity.
+</div>
+{% endif %}
+
+<div class="card" style="overflow:hidden;">
+    {% if transactions %}
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th><th>Type</th><th>Qty</th>
+                {% if role == 'admin' %}<th>Recorded By</th>{% endif %}
+                <th>Note</th><th>When</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for txn in transactions %}
+            <tr>
+                <td style="font-weight:500;">{{ txn.item.name }}</td>
+                <td>
+                    {% if txn.transaction_type == 'in' %}
+                    <span class="badge badge-in"><i class="bi bi-plus-circle"></i> IN</span>
+                    {% else %}
+                    <span class="badge badge-txnout"><i class="bi bi-dash-circle"></i> OUT</span>
+                    {% endif %}
+                </td>
+                <td style="font-family:'DM Mono',monospace; font-size:13px;">{{ txn.quantity }}</td>
+                {% if role == 'admin' %}
+                <td>
+                    <span class="badge {% if txn.recorded_by.profile.is_admin %}badge-admin{% else %}badge-employee{% endif %}">
+                        {{ txn.recorded_by.username|default:"—" }}
+                    </span>
+                </td>
+                {% endif %}
+                <td style="color:var(--muted); font-size:12.5px;">{{ txn.note|default:"—"|truncatechars:40 }}</td>
+                <td style="color:var(--muted); font-size:12.5px;">{{ txn.timestamp|date:"M d, Y H:i" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><i class="bi bi-clock-history"></i>No transactions yet</div>
+    {% endif %}
+</div>
+{% endblock %}

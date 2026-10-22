@@ -1,0 +1,19 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Delete Item{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+{% block topbar_title %}Delete Item{% endblock %}
+
+{% block content %}
+<div style="max-width:400px;margin:60px auto;text-align:center;">
+    <div class="card" style="padding:36px;">
+        <div style="font-size:40px;color:var(--danger);opacity:.7;margin-bottom:16px;"><i class="bi bi-trash3"></i></div>
+        <h2 style="font-size:18px;font-weight:500;margin-bottom:8px;">Delete "{{ item.name }}"?</h2>
+        <p style="color:var(--muted);font-size:13.5px;margin-bottom:24px;">This will permanently remove this item and all its transaction records. This cannot be undone.</p>
+        <form method="post" style="display:flex;gap:8px;justify-content:center;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Yes, Delete</button>
+            <a href="/owner/inventory/" class="btn btn-ghost">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

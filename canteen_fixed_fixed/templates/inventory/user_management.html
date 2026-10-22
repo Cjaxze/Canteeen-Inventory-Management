@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="page-title">User Management</p>
+        <p class="page-subtitle">{{ users.count }} registered account{{ users.count|pluralize }}</p>
+    </div>
+    <span class="badge badge-admin"><i class="bi bi-shield-fill"></i> Admin Only</span>
+</div>
+
+<div class="card" style="overflow:hidden;">
+    <div class="section-label">All Accounts</div>
+    <table>
+        <thead>
+            <tr><th>Username</th><th>Role</th><th>Date Joined</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>
+                    <div style="font-weight:500;">{{ u.username }}</div>
+                    <div style="font-size:12px; color:var(--muted);">{{ u.email|default:"No email" }}</div>
+                </td>
+                <td>
+                    <span class="badge badge-{{ u.profile.role }}">
+                        <i class="bi bi-{% if u.profile.is_admin %}shield-fill{% else %}person-fill{% endif %}"></i>
+                        {{ u.profile.get_role_display }}
+                    </span>
+                </td>
+                <td style="color:var(--muted); font-size:12.5px;">{{ u.date_joined|date:"M d, Y" }}</td>
+                <td>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        {% if u != request.user %}
+                        <form method="post" action="{% url 'user_role_change' u.pk %}" style="display:inline;">
+                            {% csrf_token %}
+                            {% if u.profile.is_admin %}
+                            <input type="hidden" name="role" value="employee">
+                            <button type="submit" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-down-circle"></i> Make Employee</button>
+                            {% else %}
+                            <input type="hidden" name="role" value="admin">
+                            <button type="submit" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-up-circle"></i> Make Owner</button>
+                            {% endif %}
+                        </form>
+                        <form method="post" action="{% url 'user_delete' u.pk %}" style="display:inline;" onsubmit="return confirm('Delete {{ u.username }}?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger-ghost btn-sm"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% else %}
+                        <span style="font-size:12px; color:var(--muted); font-style:italic;">You</span>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div style="margin-top:12px; display:flex; gap:8px;">
+    <a href="{% url 'inventory_dashboard' %}" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-left"></i> Dashboard</a>
+    <a href="/signup/" class="btn btn-primary btn-sm"><i class="bi bi-person-plus"></i> Add New User</a>
+</div>
+{% endblock %}

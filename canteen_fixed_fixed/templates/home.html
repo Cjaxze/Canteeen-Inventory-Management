@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="max-width:480px; margin: 80px auto; text-align:center;">
+    <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:20px;">
+        Canteen Inventory System
+    </div>
+    <h1 style="font-size:40px; font-weight:300; letter-spacing:-1.5px; line-height:1.2; margin-bottom:14px;">
+        Track what's in<br>your canteen.
+    </h1>
+    <p style="color:var(--muted); font-size:15px; margin-bottom:36px; font-weight:300;">
+        Monitor stock levels, get low-stock alerts, and manage categories — all in one place.
+    </p>
+    {% if user.is_authenticated %}
+        <a href="/inventory/" class="btn btn-primary" style="font-size:14px; padding:10px 24px;">
+            <i class="bi bi-speedometer2"></i> Go to Dashboard
+        </a>
+    {% else %}
+        <div style="display:flex; gap:10px; justify-content:center;">
+            <a href="/login/" class="btn btn-primary" style="padding:10px 24px;">Login</a>
+            <a href="/signup/" class="btn btn-ghost" style="padding:10px 24px;">Sign Up</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

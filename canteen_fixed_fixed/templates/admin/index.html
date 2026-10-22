@@ -1,0 +1,306 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content_title %}<h1>Dashboard</h1>{% endblock %}
+
+{% block content %}
+<style>
+/* ── Dashboard specific styles ── */
+.dash-subtitle {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 28px;
+  margin-top: 2px;
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+@media (max-width: 1100px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px)  { .stat-grid { grid-template-columns: 1fr; } }
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+.stat-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.stat-value {
+  font-size: 30px;
+  font-weight: 300;
+  letter-spacing: -1px;
+  color: var(--text);
+  line-height: 1;
+}
+.stat-value.accent { color: var(--accent); }
+.stat-value.warn   { color: #c8a45a; }
+.stat-value.danger { color: #f08080; }
+
+.wide-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+@media (max-width: 900px) { .wide-grid { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.panel-link {
+  font-size: 11.5px;
+  color: var(--accent) !important;
+  text-decoration: none !important;
+}
+.panel-empty {
+  padding: 32px 18px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.panel-empty i { font-size: 22px; display: block; margin-bottom: 8px; opacity: .4; }
+
+.item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.item-row:last-child { border-bottom: none; }
+.item-row:hover { background: var(--surface2); }
+.item-name { color: var(--text); font-weight: 500; }
+.item-meta { color: var(--muted); font-size: 12px; }
+.badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+.badge-warn  { background: rgba(181,133,42,.2); color: #c8a45a; }
+.badge-danger{ background: rgba(181,42,42,.2);  color: #f08080; }
+.badge-ok    { background: rgba(42,122,75,.2);  color: #6fcf97; }
+.badge-in    { background: rgba(42,122,75,.2);  color: #6fcf97; }
+.badge-out   { background: rgba(181,42,42,.2);  color: #f08080; }
+
+.quick-links {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.quick-link {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-decoration: none !important;
+  color: var(--muted) !important;
+  font-size: 12.5px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all .15s;
+}
+.quick-link i { font-size: 16px; color: var(--accent); }
+.quick-link:hover {
+  border-color: var(--accent);
+  color: var(--text) !important;
+  background: var(--accent-dim);
+}
+</style>
+
+<p class="dash-subtitle">Welcome, {{ user.username }} — full system overview</p>
+
+<!-- Stat cards -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-label">Total Items</div>
+    <div class="stat-value">{{ total_items|default:"0" }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Inventory Value</div>
+    <div class="stat-value accent">₱{{ total_value|floatformat:2 }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Low Stock</div>
+    <div class="stat-value warn">{{ low_stock_count|default:"0" }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Out of Stock</div>
+    <div class="stat-value danger">{{ out_of_stock_count|default:"0" }}</div>
+  </div>
+</div>
+
+<!-- Second row stats -->
+<div class="stat-grid" style="grid-template-columns: repeat(3,1fr); margin-bottom:28px;">
+  <div class="stat-card" style="display:flex; align-items:center; gap:16px;">
+    <div style="width:40px;height:40px;background:rgba(107,158,210,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+      <i class="bi bi-people" style="color:#6b9ed2;font-size:18px;"></i>
+    </div>
+    <div>
+      <div class="stat-label" style="margin-bottom:2px;">Staff Accounts</div>
+      <div class="stat-value" style="font-size:22px;">{{ employee_count|default:"0" }} <span style="font-size:13px;color:var(--muted);font-weight:400;">employees</span> &nbsp;·&nbsp; {{ owner_count|default:"0" }} <span style="font-size:13px;color:var(--muted);font-weight:400;">owners</span></div>
+    </div>
+  </div>
+  <div class="stat-card" style="display:flex; align-items:center; gap:16px;">
+    <div style="width:40px;height:40px;background:rgba(232,121,74,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+      <i class="bi bi-lightning" style="color:var(--accent);font-size:18px;"></i>
+    </div>
+    <div>
+      <div class="stat-label" style="margin-bottom:2px;">Today's Transactions</div>
+      <div class="stat-value" style="font-size:22px;">{{ today_txns|default:"0" }}</div>
+    </div>
+  </div>
+  <div class="stat-card" style="display:flex; align-items:center; gap:16px;">
+    <div style="width:40px;height:40px;background:rgba(42,122,75,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+      <i class="bi bi-tag" style="color:#6fcf97;font-size:18px;"></i>
+    </div>
+    <div>
+      <div class="stat-label" style="margin-bottom:2px;">Categories</div>
+      <div class="stat-value" style="font-size:22px;">{{ category_count|default:"0" }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick links -->
+<div class="quick-links">
+  <a href="{% url 'admin:main_inventoryitem_add' %}" class="quick-link">
+    <i class="bi bi-plus-circle"></i> Add Item
+  </a>
+  <a href="{% url 'admin:main_inventoryitem_changelist' %}" class="quick-link">
+    <i class="bi bi-box-seam"></i> View Inventory
+  </a>
+  <a href="{% url 'admin:main_category_changelist' %}" class="quick-link">
+    <i class="bi bi-tags"></i> Categories
+  </a>
+  <a href="{% url 'admin:main_stocktransaction_changelist' %}" class="quick-link">
+    <i class="bi bi-arrow-left-right"></i> Transactions
+  </a>
+  <a href="{% url 'admin:auth_user_changelist' %}" class="quick-link">
+    <i class="bi bi-person-gear"></i> Manage Users
+  </a>
+  <a href="/owner/" class="quick-link">
+    <i class="bi bi-speedometer2"></i> Owner Panel
+  </a>
+</div>
+
+<!-- Tables row -->
+<div class="wide-grid">
+  <!-- Low stock alerts -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">⚠ Low Stock Alerts</span>
+      <a href="{% url 'admin:main_inventoryitem_changelist' %}" class="panel-link">View All</a>
+    </div>
+    {% if low_stock_items %}
+      {% for item in low_stock_items %}
+      <div class="item-row">
+        <div>
+          <div class="item-name">{{ item.name }}</div>
+          <div class="item-meta">{{ item.category.name|default:"No category" }}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="item-meta">{{ item.quantity }} {{ item.unit }}</span>
+          {% if item.quantity == 0 %}
+            <span class="badge badge-danger">OUT</span>
+          {% else %}
+            <span class="badge badge-warn">LOW</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="panel-empty">
+        <i class="bi bi-check-circle"></i>
+        All items well-stocked
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Recent transactions -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">⏱ Recent Transactions</span>
+      <a href="{% url 'admin:main_stocktransaction_changelist' %}" class="panel-link">Full Log</a>
+    </div>
+    {% if recent_transactions %}
+      {% for txn in recent_transactions %}
+      <div class="item-row">
+        <div>
+          <div class="item-name">{{ txn.item.name }}</div>
+          <div class="item-meta">{{ txn.recorded_by.username|default:"—" }} · {{ txn.timestamp|date:"M d, H:i" }}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="item-meta">{{ txn.quantity }}</span>
+          {% if txn.transaction_type == 'in' %}
+            <span class="badge badge-in">IN</span>
+          {% else %}
+            <span class="badge badge-out">OUT</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="panel-empty">
+        <i class="bi bi-clock-history"></i>
+        No transactions yet
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- App registry (models list) at the bottom -->
+{% if app_list %}
+<div style="margin-top: 8px;">
+  <div style="font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Models</div>
+  <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:12px;">
+    {% for app in app_list %}
+      {% for model in app.models %}
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="color:var(--text);font-size:13px;font-weight:500;">{{ model.name }}</span>
+        <div style="display:flex;gap:6px;">
+          {% if model.add_url %}
+          <a href="{{ model.add_url }}" style="font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid var(--border);color:var(--muted);text-decoration:none;">+ Add</a>
+          {% endif %}
+          {% if model.admin_url %}
+          <a href="{{ model.admin_url }}" style="font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid var(--border);color:var(--muted);text-decoration:none;">Change</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
