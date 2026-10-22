@@ -6,12 +6,12 @@
 {% block content %}
 <style>
 .stat-card-link {
-    display: block; text-decoration: none; border-radius: 12px;
-    background: var(--surface); border: 1px solid var(--border);
+    display: block; text-decoration: none; color: var(--text); border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
     padding: 20px; transition: border-color .2s, transform .15s, box-shadow .2s;
     cursor: pointer;
 }
-.stat-card-link:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,.25); }
+.stat-card-link:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(40,36,28,.10); }
 .stat-card-link.hover-ok:hover     { border-color: var(--ok); }
 .stat-card-link.hover-accent:hover { border-color: var(--accent); }
 .stat-card-link.hover-warn:hover   { border-color: var(--warn); }
@@ -20,14 +20,14 @@
 /* ── Modals ── */
 .modal-overlay {
     display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+    background: rgba(43,42,38,.38); backdrop-filter: blur(3px);
     z-index: 300; align-items: center; justify-content: center;
 }
 .modal-overlay.open { display: flex; }
 .modal {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 16px; width: 100%; max-width: 480px;
-    margin: 16px; box-shadow: 0 24px 64px rgba(0,0,0,.5);
+    margin: 16px; box-shadow: 0 24px 64px rgba(40,36,28,.20);
     animation: popIn .18s ease;
 }
 @keyframes popIn { from { opacity:0; transform:translateY(12px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
@@ -77,7 +77,7 @@
 <div class="page-header">
     <div>
         <p class="page-title">Dashboard</p>
-        <p class="page-subtitle">Welcome back, {{ request.user.username }} — full system overview</p>
+        <p class="page-subtitle">Full system overview</p>
     </div>
     <button class="btn btn-primary" onclick="openModal('modal-add')">
         <i class="bi bi-plus"></i> Add Item
@@ -105,16 +105,7 @@
 </div>
 
 <!-- ── MINI STATS ── -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-    <a href="/owner/users/" class="stat-card-link hover-ok" style="display:flex;align-items:center;gap:14px;padding:16px 20px;">
-        <div style="width:40px;height:40px;background:var(--ok-l);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--ok);flex-shrink:0;">
-            <i class="bi bi-people"></i>
-        </div>
-        <div>
-            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Staff Accounts</div>
-            <div style="font-size:20px;font-weight:300;font-family:'DM Mono',monospace;">{{ employee_count }} <span style="font-size:12px;color:var(--muted);">employees</span> &nbsp;·&nbsp; {{ admin_count }} <span style="font-size:12px;color:var(--muted);">owners</span></div>
-        </div>
-    </a>
+<div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px;">
     <a href="/owner/transactions/" class="stat-card-link hover-accent" style="display:flex;align-items:center;gap:14px;padding:16px 20px;">
         <div style="width:40px;height:40px;background:var(--accent-l);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--accent);flex-shrink:0;">
             <i class="bi bi-lightning-charge"></i>

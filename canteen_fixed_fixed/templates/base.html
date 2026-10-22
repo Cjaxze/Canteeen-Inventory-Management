@@ -14,29 +14,10 @@
 <nav>
     <a class="nav-brand" href="/">Canteen<span>IMS</span></a>
     <div class="nav-links">
-        <a class="nav-link" href="/">Home</a>
         <a class="nav-link" href="/about/">About</a>
         <a class="nav-link" href="/contact/">Contact</a>
-        {% if user.is_authenticated %}
-            <div class="nav-divider"></div>
-            <a class="nav-link accent-link" href="/inventory/"><i class="bi bi-box-seam"></i> Inventory</a>
-            {% if user.profile.is_admin %}
-                <a class="nav-link" href="/users/"><i class="bi bi-people"></i> Users</a>
-            {% endif %}
-            <span class="role-pill {% if user.profile.is_admin %}admin{% else %}employee{% endif %}">
-                <i class="bi bi-{% if user.profile.is_admin %}shield-fill{% else %}person-fill{% endif %}"></i>
-                {{ user.profile.get_role_display }}
-            </span>
-            <span style="font-size:13.5px; font-weight:600; color:var(--text);">{{ user.username }}</span>
-            <form method="post" action="/staff/logout/" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" class="nav-link" style="background:none; border:none; cursor:pointer; font-family:inherit;">Logout</button>
-            </form>
-        {% else %}
-            <div class="nav-divider"></div>
-            <a class="nav-link" href="/login/">Login</a>
-            <a class="nav-link accent-link" href="/signup/">Sign Up</a>
-        {% endif %}
+        <div class="nav-divider"></div>
+        <a class="nav-link accent-link" href="/"><i class="bi bi-speedometer2"></i> Dashboard</a>
         <button class="theme-btn" id="themeBtn" title="Toggle theme">🌙</button>
     </div>
 </nav>

@@ -26,32 +26,12 @@
     <a href="/owner/categories/" class="nav-item {% block nav_categories %}{% endblock %}"><i class="bi bi-tags"></i> Categories</a>
     <a href="/owner/transactions/" class="nav-item {% block nav_transactions %}{% endblock %}"><i class="bi bi-clock-history"></i> Transactions</a>
 
-    <div class="sidebar-section">Access</div>
-    <a href="/owner/users/" class="nav-item {% block nav_users %}{% endblock %}"><i class="bi bi-people"></i> Staff Accounts</a>
-
-    <div class="sidebar-footer">
-        <div class="user-chip">
-            <div class="user-avatar">{{ request.user.username|slice:":1"|upper }}</div>
-            <div class="user-info">
-                <div class="user-name">{{ request.user.username }}</div>
-                <div class="user-role">Owner</div>
-            </div>
-        </div>
-        <form method="post" action="/owner/logout/" style="margin-top:6px;">
-            {% csrf_token %}
-            <button type="submit" class="logout-btn"><i class="bi bi-box-arrow-left"></i> Sign Out</button>
-        </form>
-    </div>
 </aside>
 
 <!-- MAIN CONTENT -->
 <div class="main">
     <div class="topbar">
         <span class="topbar-title">{% block topbar_title %}Admin Panel{% endblock %}</span>
-        <div class="topbar-right">
-            <span style="font-size:11.5px;color:var(--muted);">{{ request.user.username }}</span>
-            <span class="badge badge-accent"><i class="bi bi-shield-fill"></i> Owner</span>
-        </div>
     </div>
 
     {% if messages %}
